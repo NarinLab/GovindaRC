@@ -49,7 +49,8 @@ const char* WIFI_PASSWORD = "ingattuhan";
 #define ULTRASONIC_MAX 300
 #define ULTRASONIC_MIN 3
 #define ULTRASONIC_SAMPLE 3
-WebSocketsServer webSocket = WebSocketsServer(81);
+
+WebSocketsServer webSocket = WebSocketsServer(81, "*", "GovindaRC");
 Servo SERVOX;
 Servo SERVOY;
 
@@ -57,6 +58,19 @@ Servo SERVOY;
 float scan(int sample = ULTRASONIC_SAMPLE);
 //GLOBAL Variable (flag)
 int _PWM_A, _PWM_B, _SERVOX, _SERVOY, _DIRECTION;
+int _CLIENT_NUM = 0;
+
+// Fail safe
+void safeme(){
+    // Stop motor
+    speed(0,0);
+    navigate(0);
+    // Led off
+    light(0, 0);
+    // Watch head
+    look(90, 0);
+}
+
 
 void speed(int pwm_a, int pwm_b){
     if(pwm_a > 1023){
@@ -176,10 +190,10 @@ void navigate(int direction) {
         _DIRECTION = 4;
     }
     else {
-        digitalWrite(PIN_AIN1, LOW);
-        digitalWrite(PIN_AIN2, LOW);
-        digitalWrite(PIN_BIN1, LOW);
-        digitalWrite(PIN_BIN2, LOW);
+        digitalWrite(PIN_AIN1, HIGH);
+        digitalWrite(PIN_AIN2, HIGH);
+        digitalWrite(PIN_BIN1, HIGH);
+        digitalWrite(PIN_BIN2, HIGH);
 
         _DIRECTION = 0;
     }
@@ -187,12 +201,12 @@ void navigate(int direction) {
 
 void light(int state, int hold){
     if(hold > 0){
-        digitalWrite(PIN_LIGHT, state);
-        delay(hold);
         digitalWrite(PIN_LIGHT, !state);
+        delay(hold);
+        digitalWrite(PIN_LIGHT, state);
     }
     else{
-        digitalWrite(PIN_LIGHT, state);
+        digitalWrite(PIN_LIGHT, !state);
     }
 }
 
@@ -285,6 +299,12 @@ void setup() {
 }
   
 void loop() {
+    if(_CLIENT_NUM < 1){
+        safeme();
+    }
     webSocket.loop();
+    if(WiFi.status() != WL_CONNECTED){
+        safeme();
+    }
 }
 

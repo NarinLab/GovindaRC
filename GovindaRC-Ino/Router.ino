@@ -1,6 +1,9 @@
 void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length) {
     switch(type) {
         case WStype_DISCONNECTED:
+            // Decrease client number flag
+            _CLIENT_NUM--;
+            safeme();
             // Dim light
             for (int i = 0; i < 3; i++){
                 light(1, 500);
@@ -9,7 +12,11 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
             break;
         case WStype_CONNECTED:
             {
-                IPAddress ip = webSocket.remoteIP(num);
+                // Increase client number flag
+                _CLIENT_NUM++;
+                // Set head
+                look(90, 90);
+                //IPAddress ip = webSocket.remoteIP(num);
                 // Dim light
                 light(1, 100);
             }
