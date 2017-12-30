@@ -1,0 +1,13 @@
+
+<div id="pan-controller" class="container" fxLayout fxLayout.xs="row" fxLayoutAlign="center" fxLayoutGap="0px" fxLayoutGap.xs="0">
+    <div fxFlex="50%">
+        <div id="pan-controller-left">
+            <mat-progress-spinner
+            [mode]="progress_mode"
+            [value]="progress_pwm"></mat-progress-spinner>
+        </div>
+    </div>
+    <div fxFlex="50%">
+        <div id="pan-controller-right"></div>
+    </div>
+</div>

@@ -1,0 +1,12 @@
+#pan-controller-right {
+    position: relative;
+}
+
+#pan-controller-left {
+    position: relative;
+    top: 65px;
+    left: 80px;
+    /*background-color: rgba(194, 24, 91, 0.46);*/
+    padding: 25px;
+    /* border-radius: 50%; */
+}

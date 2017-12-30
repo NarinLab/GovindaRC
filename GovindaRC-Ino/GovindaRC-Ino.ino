@@ -21,12 +21,12 @@
 //SOFTWARE.
   
 #include <ArduinoJson.h>
+#include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
 #include <WiFiClient.h>
 #include <ESP8266WebServer.h>
 #include <WebSocketsServer.h>
 #include <Hash.h>
-#include <Servo.h> 
 
 const char* WIFI_SSID     = "AndroidAP";
 const char* WIFI_PASSWORD = "ingattuhan";
@@ -38,39 +38,38 @@ const char* WIFI_PASSWORD = "ingattuhan";
 #define PIN_BIN2 2 //D4
 #define PIN_BIN1 14 //D5
 #define PIN_LIGHT 16
-#define PIN_SERVOX 12
-#define PIN_SERVOY 13
+#define PIN_ENGINE 12
 #define PIN_ECHO 3
 #define PIN_TRIG 1
   
 #define PAYLOAD_SIZE 256
-#define SERVOX_CAL 30 // + if too left, - if too right
-#define SERVOY_CAL 30 // + if too up, - if too down
 #define ULTRASONIC_MAX 300
 #define ULTRASONIC_MIN 3
 #define ULTRASONIC_SAMPLE 3
 
 WebSocketsServer webSocket = WebSocketsServer(81, "*", "GovindaRC");
-Servo SERVOX;
-Servo SERVOY;
 
 // Function Prototype
 float scan(int sample = ULTRASONIC_SAMPLE);
 //GLOBAL Variable (flag)
-int _PWM_A, _PWM_B, _SERVOX, _SERVOY, _DIRECTION;
+int _PWM_A, _PWM_B, _DIRECTION;
 int _CLIENT_NUM = 0;
-
+bool _FLAG_SCAN = false;
+uint16_t _FLAG_SCAN_PERIOD = 100; //millisecond
+unsigned long _FLAG_SCAN_LAST = 0;
 // Fail safe
 void safeme(){
     // Stop motor
+    engine_switch(0);
     speed(0,0);
     navigate(0);
     // Led off
     light(0, 0);
-    // Watch head
-    look(90, 0);
 }
 
+void engine_switch(int state){
+    digitalWrite(PIN_ENGINE, state);
+}
 
 void speed(int pwm_a, int pwm_b){
     if(pwm_a > 1023){
@@ -99,12 +98,12 @@ void navigate(int direction) {
             int pwm_a = _PWM_A;
             int pwm_b = _PWM_B;
             speed(256,256);
-            delay(250);
+            //delay(250);
             digitalWrite(PIN_AIN1, LOW);
             digitalWrite(PIN_AIN2, HIGH);
             digitalWrite(PIN_BIN1, LOW);
             digitalWrite(PIN_BIN2, HIGH);
-            delay(250);
+            //delay(250);
             // Restoring gas
             speed(pwm_a, pwm_b);
         }
@@ -123,12 +122,12 @@ void navigate(int direction) {
             int pwm_a = _PWM_A;
             int pwm_b = _PWM_B;
             speed(256,256);
-            delay(250);
+            //delay(250);
             digitalWrite(PIN_AIN1, HIGH);
             digitalWrite(PIN_AIN2, LOW);
             digitalWrite(PIN_BIN1, HIGH);
             digitalWrite(PIN_BIN2, LOW);
-            delay(250);
+            //delay(250);
             // Restoring gas
             speed(pwm_a, pwm_b);
         }
@@ -147,12 +146,12 @@ void navigate(int direction) {
             int pwm_a = _PWM_A;
             int pwm_b = _PWM_B;
             speed(256,256);
-            delay(250);
+            //delay(250);
             digitalWrite(PIN_AIN1, HIGH);
             digitalWrite(PIN_AIN2, LOW);
             digitalWrite(PIN_BIN1, LOW);
             digitalWrite(PIN_BIN2, HIGH);
-            delay(250);
+            //delay(250);
             // Restoring gas
             speed(pwm_a, pwm_b);
         }
@@ -171,12 +170,12 @@ void navigate(int direction) {
             int pwm_a = _PWM_A;
             int pwm_b = _PWM_B;
             speed(256,256);
-            delay(250);
+            //delay(250);
             digitalWrite(PIN_AIN1, LOW);
             digitalWrite(PIN_AIN2, HIGH);
             digitalWrite(PIN_BIN1, HIGH);
             digitalWrite(PIN_BIN2, LOW);
-            delay(250);
+            //delay(250);
             // Restoring gas
             speed(pwm_a, pwm_b);
         }
@@ -210,32 +209,6 @@ void light(int state, int hold){
     }
 }
 
-void look(int x, int y) {
-    if(x > 180){
-        x = 180 - SERVOX_CAL;
-    }
-    else if(x < 0){
-        x = 0 + SERVOX_CAL;
-    }
-    else{
-        x = x - SERVOX_CAL;
-    }
-    if(y > 180){
-        y = 180 - SERVOY_CAL;
-    }
-    else if(y < 0){
-        y = 0  + SERVOY_CAL;
-    }
-    else{
-        y = y - SERVOY_CAL;
-    }
-    
-    SERVOX.write(x);                
-    SERVOY.write(y);
-    _SERVOX = x;
-    _SERVOY = y;
-}
-
 float scan(int sample){
     float cms = 0;
     
@@ -260,6 +233,37 @@ float scan(int sample){
     return cms / sample;
 }
 
+void stream_ultrasonic(){
+    if(_FLAG_SCAN){
+        StaticJsonBuffer<PAYLOAD_SIZE> jsonBuffer;
+        JsonObject& root = jsonBuffer.createObject();
+        char payload[PAYLOAD_SIZE];
+        float cm = scan(5);
+        root["msgId"] = "stream";
+        root["status"] = 200;
+        root["type"] = "scan";
+        root["data"] = cm;
+        root["desc"] = "OK";
+        root.printTo(payload, sizeof(payload));
+        webSocket.broadcastTXT(payload);
+    }
+}
+
+void setup_ota(){
+    ArduinoOTA.begin();
+    ArduinoOTA.onStart([]() {
+      
+    });
+  
+    ArduinoOTA.onProgress([](unsigned int progress, unsigned int total) {
+      
+    });
+  
+    ArduinoOTA.onEnd([]() {
+      
+    });
+}
+
 void setup() {
   Serial.end();
   //Lighting LED
@@ -267,6 +271,8 @@ void setup() {
   //Ultrasonic ranger
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
+  //Engine starter
+  pinMode(PIN_ENGINE, OUTPUT);
   //Motor A
   pinMode(PIN_PWMA, OUTPUT);
   pinMode(PIN_AIN1, OUTPUT);
@@ -275,14 +281,9 @@ void setup() {
   pinMode(PIN_PWMB, OUTPUT);
   pinMode(PIN_BIN1, OUTPUT);
   pinMode(PIN_BIN2, OUTPUT);
-  //Servo
-  pinMode(PIN_SERVOX, OUTPUT);
-  pinMode(PIN_SERVOY, OUTPUT);
-  SERVOX.attach(PIN_SERVOX);
-  SERVOY.attach(PIN_SERVOY);
 
   //Serial.begin(115200);  
-  delay(10);
+  //delay(10);
     
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -293,16 +294,24 @@ void setup() {
     delay(100);
   }
   //Serial.println("Connected!");
+  setup_ota();
   webSocket.begin();
   webSocket.onEvent(webSocketEvent);
-  look(90,90);
 }
   
 void loop() {
+    ArduinoOTA.handle();
+    /*webSocket.loop();*/
+    /* SCHEDULER */
+    unsigned long NOW = millis();
+    if((NOW - _FLAG_SCAN_LAST) > _FLAG_SCAN_PERIOD){
+        stream_ultrasonic();
+        _FLAG_SCAN_LAST = NOW;
+    }
+    /* SCHEDULER */
     if(_CLIENT_NUM < 1){
         safeme();
     }
-    webSocket.loop();
     if(WiFi.status() != WL_CONNECTED){
         safeme();
     }
