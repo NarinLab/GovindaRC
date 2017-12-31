@@ -38,6 +38,7 @@ export class MyHammerConfig extends HammerGestureConfig  {
     BrowserModule,
     AppRoutingModule,
     FormsModule,
+    ReactiveFormsModule,
     HttpModule,
     MaterialModule,
     BrowserAnimationsModule,

@@ -19,7 +19,8 @@
 //LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 //OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //SOFTWARE.
-  
+
+#include <EEPROM.h>  
 #include <ArduinoJson.h>
 #include <ArduinoOTA.h>
 #include <ESP8266WiFi.h>
@@ -28,8 +29,10 @@
 #include <WebSocketsServer.h>
 #include <Hash.h>
 
-const char* WIFI_SSID     = "AndroidAP";
-const char* WIFI_PASSWORD = "ingattuhan";
+const char* DEFAULT_WIFI_SSID     = "AndroidAP";
+const char* DEFAULT_WIFI_PASSWORD = "ingattuhan";
+char WIFI_SSID[32] = "";
+char WIFI_PASSWORD[32] = "";
 
 #define PIN_PWMA 5
 #define PIN_PWMB 4
@@ -57,6 +60,36 @@ int _CLIENT_NUM = 0;
 bool _FLAG_SCAN = false;
 uint16_t _FLAG_SCAN_PERIOD = 100; //millisecond
 unsigned long _FLAG_SCAN_LAST = 0;
+
+
+/** Load WLAN credentials from EEPROM */
+void loadCredentials() {
+  EEPROM.begin(512);
+  EEPROM.get(0, WIFI_SSID);
+  EEPROM.get(0+sizeof(WIFI_SSID), WIFI_PASSWORD);
+  char ok[2+1];
+  EEPROM.get(0+sizeof(WIFI_SSID)+sizeof(WIFI_PASSWORD), ok);
+  EEPROM.end();
+  if (String(ok) != String("OK")) {
+    String(DEFAULT_WIFI_SSID).toCharArray(WIFI_SSID, sizeof(WIFI_SSID) - 1);
+    String(DEFAULT_WIFI_PASSWORD).toCharArray(WIFI_PASSWORD, sizeof(WIFI_PASSWORD) - 1);
+    saveCredentials();
+  }
+}
+
+/** Store WLAN credentials to EEPROM */
+void saveCredentials() {
+  EEPROM.begin(512);
+  EEPROM.put(0, WIFI_SSID);
+  EEPROM.put(0+sizeof(WIFI_SSID), WIFI_PASSWORD);
+  char ok[2+1] = "OK";
+  EEPROM.put(0+sizeof(WIFI_SSID)+sizeof(WIFI_PASSWORD), ok);
+  EEPROM.commit();
+  EEPROM.end();
+  ESP.reset();
+}
+
+
 // Fail safe
 void safeme(){
     // Stop motor
@@ -266,9 +299,16 @@ void setup_ota(){
 
 void setup() {
   Serial.end();
+  //Serial.begin(115200);  
+  //delay(10);
+  //Serial.println("Serial ready!");
+  
+
+  loadCredentials();
+  
   //Lighting LED
   pinMode(PIN_LIGHT, OUTPUT);
-  //Ultrasonic ranger
+  //Ultrasonic ranger (Disable if using Serial)
   pinMode(PIN_TRIG, OUTPUT);
   pinMode(PIN_ECHO, INPUT);
   //Engine starter
@@ -281,9 +321,6 @@ void setup() {
   pinMode(PIN_PWMB, OUTPUT);
   pinMode(PIN_BIN1, OUTPUT);
   pinMode(PIN_BIN2, OUTPUT);
-
-  //Serial.begin(115200);  
-  //delay(10);
     
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);

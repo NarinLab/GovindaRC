@@ -16,7 +16,9 @@ export class AppComponent {
   title = 'GovindaRC';
   public ultrasonic = 0;
   public isConnected = 'gps_not_fixed';
-  public ipAddress = '18.9.70.23';
+  public ipAddress = '192.168.43.124';
+  public wifiSsid = '-';
+  public wifiPass = '-';
   private socketSubscription: Subscription;
 
   constructor(
@@ -31,12 +33,17 @@ export class AppComponent {
 
   openDialogOptions(): void {
     let dialogRef = this.dialog.open(DialogOptionsComponent, {
-      width: '250px',
-      data: { ipAddress: this.ipAddress }
+      width: '450px',
+      data: { ipAddress: this.ipAddress, wifiSsid: this.wifiSsid, wifiPass: this.wifiPass }
     });
 
     dialogRef.afterClosed().subscribe(data => {
-      this.ipAddress = data.ipAddress;
+      try{
+        this.ipAddress = data.ipAddress;
+        this.wifiSsid = data.wifiSsid;
+        this.wifiPass = data.wifiPass;
+        this.socket.send('{"cmd": "set_wifi", "arg": {"ssid": "'+this.wifiSsid+'", "pass": "'+this.wifiPass+'"}}');
+      } catch(err) {}
     });
   }
 
@@ -61,16 +68,20 @@ export class AppComponent {
       } catch (e) {
         obj = {};
       }
-      
       this.isConnected = 'gps_fixed';
       if(obj.type == 'scan'){
         this.ultrasonic = Math.round(obj.data);
+      }
+      else if(obj.type == 'get_wifi'){
+        this.wifiSsid = obj.data.ssid;
+        this.wifiPass = obj.data.pass;
       }
     });
     this.socket.messages.retryWhen(errors => errors.delay(1000)).subscribe(message => {
       this.isConnected = 'gps_fixed';
     });
     this.socket.send('{"cmd": "P"}');
+    this.socket.send('{"cmd": "get_wifi"}');
   }
 
   ngOnDestroy() {

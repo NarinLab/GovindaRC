@@ -53,3 +53,7 @@ html, body{
   .ultrasonic-danger{
     color: #ff00007d;
   }
+
+  .field-full-width {
+    width: 100%;
+  }

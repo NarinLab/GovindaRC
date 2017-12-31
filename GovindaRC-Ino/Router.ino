@@ -30,7 +30,6 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 char payload[PAYLOAD_SIZE];
                 // Check message format
                 if(!data.success()){
-                    root["msgId"] = "-";
                     root["status"] = 400;
                     root["type"] = "debug";
                     root["data"] = "-";
@@ -46,7 +45,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 else if(data["cmd"] == "move"){
                     if(data["arg"] >= 0 && data["arg"] <= 4){
                         navigate(data["arg"]);
-                        /**root["msgId"] = data["msgId"];
+                        /**
                         root["status"] = 200;
                         root["type"] = data["cmd"];
                         root["data"] = data["arg"];
@@ -55,7 +54,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                         webSocket.sendTXT(num, payload);**/
                     }
                     else{
-                        /**root["msgId"] = data["msgId"];
+                        /**
                         root["status"] = 400;
                         root["type"] = "debug";
                         root["data"] = "move[arg: (int) 0-4]";
@@ -68,7 +67,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 else if(data["cmd"] == "scan"){
                     if(data["arg"] > 0){
                         float cm = scan(data["arg"]);
-                        root["msgId"] = data["msgId"];
+                        
                         root["status"] = 200;
                         root["type"] = data["cmd"];
                         root["data"] = cm;
@@ -80,7 +79,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                         _FLAG_SCAN = !_FLAG_SCAN;
                     }
                     else{
-                        /**root["msgId"] = data["msgId"];
+                        /**
                         root["status"] = 400;
                         root["type"] = "debug";
                         root["data"] = "scan[ arg: (int) 1-65535 ]";
@@ -93,7 +92,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 else if(data["cmd"] == "light"){
                     if(data["arg"] >= 0 && data["arg"] <= 1){
                         light(data["arg"], 0);
-                        root["msgId"] = data["msgId"];
+                        
                         root["status"] = 200;
                         root["type"] = data["cmd"];
                         root["data"] = data["arg"];
@@ -102,7 +101,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                         webSocket.sendTXT(num, payload);
                     }
                     else{
-                        /**root["msgId"] = data["msgId"];
+                        /**
                         root["status"] = 400;
                         root["type"] = "debug";
                         root["data"] = "light[ arg: (int) 0-1 ]";
@@ -116,7 +115,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                     if(data["arg"]["a"] >= 0 && data["arg"]["a"] <= 1023 && 
                         data["arg"]["b"] >= 0 && data["arg"]["b"] <= 1023){
                         speed(data["arg"]["a"], data["arg"]["b"]);
-                        /**root["msgId"] = data["msgId"];
+                        /**
                         root["status"] = 200;
                         root["type"] = data["cmd"];
                         root["data"] = data["arg"];
@@ -125,7 +124,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                         webSocket.sendTXT(num, payload);**/
                     }
                     else{
-                        /**root["msgId"] = data["msgId"];
+                        /**
                         root["status"] = 400;
                         root["type"] = "debug";
                         root["data"] = "speed[ arg: (arr) {a: 0-1023, b: 0-1023} ]";
@@ -134,6 +133,44 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                         webSocket.sendTXT(num, payload);**/
                     }
                 }
+                // wifi section
+                else if(data["cmd"] == "set_wifi"){
+                    if(sizeof(data["arg"]["ssid"]) <= 30 && sizeof(data["arg"]["pass"]) <= 30){
+                        String ssid = data["arg"]["ssid"];
+                        String password = data["arg"]["pass"];
+                        ssid.toCharArray(WIFI_SSID, sizeof(WIFI_SSID) - 1);
+                        password.toCharArray(WIFI_PASSWORD, sizeof(WIFI_PASSWORD) - 1);
+                        saveCredentials();
+
+                        
+                        root["status"] = 200;
+                        root["type"] = data["cmd"];
+                        root["data"] = data["arg"];
+                        root["desc"] = "OK";
+                        root.printTo(payload, sizeof(payload));
+                        webSocket.sendTXT(num, payload);
+                    }
+                    else{
+                        /**
+                        root["status"] = 400;
+                        root["type"] = "debug";
+                        root["data"] = "speed[ arg: (arr) {a: 0-1023, b: 0-1023} ]";
+                        root["desc"] = "Bad Request";
+                        root.printTo(payload, sizeof(payload));
+                        webSocket.sendTXT(num, payload);**/
+                    }
+                }
+                else if(data["cmd"] == "get_wifi"){
+                    
+                    root["status"] = 200;
+                    root["type"] = data["cmd"];
+                    JsonObject& data = root.createNestedObject("data");
+                    data["ssid"] = WIFI_SSID;
+                    data["pass"] = WIFI_PASSWORD;
+                    root["desc"] = "OK";
+                    root.printTo(payload, sizeof(payload));
+                    webSocket.sendTXT(num, payload);
+                }
                 else if(data["cmd"] == "engine"){
                     if(data["arg"] >= 0 && data["arg"] <= 1){
                         engine_switch(data["arg"]);
@@ -141,7 +178,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 }
                 // Not implemented
                 else{
-                    root["msgId"] = data["msgId"];
+                    
                     root["status"] = 501;
                     root["type"] = data["cmd"];
                     root["data"] = data["arg"];
