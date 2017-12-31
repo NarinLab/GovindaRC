@@ -48,9 +48,9 @@ export class AppComponent {
   }
 
   openAbout(): void{
-    let mySnackBar = this.snackbar.open('GovindaRC App v0.1.0','OK', {
+    let mySnackBar = this.snackbar.open('GovindaRC App v0.1.1-alpha','OK', {
       duration: 15000,
-      data: {message: 'GovindaRC App v0.1.0', action: 'OK'},
+      data: {message: 'GovindaRC App v0.1.1-alpha', action: 'OK'},
       verticalPosition: 'top',
       horizontalPosition: 'center',
       panelClass: 'snackbar'

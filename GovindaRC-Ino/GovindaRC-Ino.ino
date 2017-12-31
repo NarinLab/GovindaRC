@@ -34,6 +34,7 @@ const char* DEFAULT_WIFI_PASSWORD = "ingattuhan";
 char WIFI_SSID[32] = "";
 char WIFI_PASSWORD[32] = "";
 
+#define VERSION "0.1.1-alpha"
 #define PIN_PWMA 5
 #define PIN_PWMB 4
 #define PIN_AIN2 15
