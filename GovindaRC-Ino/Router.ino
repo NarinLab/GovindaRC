@@ -135,7 +135,7 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                 }
                 // wifi section
                 else if(data["cmd"] == "set_wifi"){
-                    if(sizeof(data["arg"]["ssid"]) <= 30 && sizeof(data["arg"]["pass"]) <= 30){
+                    if(((sizeof(data["arg"]["ssid"]) >= 8) && (sizeof(data["arg"]["pass"]) >= 8)) && ((sizeof(data["arg"]["ssid"]) <= 30) && (sizeof(data["arg"]["pass"]) <= 30))){
                         String ssid = data["arg"]["ssid"];
                         String password = data["arg"]["pass"];
                         ssid.toCharArray(WIFI_SSID, sizeof(WIFI_SSID) - 1);
@@ -167,6 +167,15 @@ void webSocketEvent(uint8_t num, WStype_t type, uint8_t * payload, size_t length
                     JsonObject& data = root.createNestedObject("data");
                     data["ssid"] = WIFI_SSID;
                     data["pass"] = WIFI_PASSWORD;
+                    root["desc"] = "OK";
+                    root.printTo(payload, sizeof(payload));
+                    webSocket.sendTXT(num, payload);
+                }
+                else if(data["cmd"] == "get_version"){
+                    
+                    root["status"] = 200;
+                    root["type"] = data["cmd"];
+                    root["data"] = VERSION;
                     root["desc"] = "OK";
                     root.printTo(payload, sizeof(payload));
                     webSocket.sendTXT(num, payload);

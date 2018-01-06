@@ -14,6 +14,8 @@ import { SnackbarComponent } from './snackbar/snackbar.component';
 })
 export class AppComponent {
   title = 'GovindaRC';
+  public appVersion = 'v0.1.2-alpha';
+  public firmwareVersion = '';
   public ultrasonic = 0;
   public isConnected = 'gps_not_fixed';
   public ipAddress = '192.168.43.124';
@@ -48,9 +50,9 @@ export class AppComponent {
   }
 
   openAbout(): void{
-    let mySnackBar = this.snackbar.open('GovindaRC App v0.1.1-alpha','OK', {
+    let mySnackBar = this.snackbar.open('GovindaRC (App '+this.appVersion+'; Firmware '+this.firmwareVersion+')','OK', {
       duration: 15000,
-      data: {message: 'GovindaRC App v0.1.1-alpha', action: 'OK'},
+      data: {message: 'GovindaRC (App '+this.appVersion+'; Firmware '+this.firmwareVersion+')', action: 'OK'},
       verticalPosition: 'top',
       horizontalPosition: 'center',
       panelClass: 'snackbar'
@@ -72,6 +74,9 @@ export class AppComponent {
       if(obj.type == 'scan'){
         this.ultrasonic = Math.round(obj.data);
       }
+      if(obj.type == 'get_version'){
+        this.firmwareVersion = obj.data;
+      }
       else if(obj.type == 'get_wifi'){
         this.wifiSsid = obj.data.ssid;
         this.wifiPass = obj.data.pass;
@@ -82,6 +87,7 @@ export class AppComponent {
     });
     this.socket.send('{"cmd": "P"}');
     this.socket.send('{"cmd": "get_wifi"}');
+    this.socket.send('{"cmd": "get_version"}');
   }
 
   ngOnDestroy() {

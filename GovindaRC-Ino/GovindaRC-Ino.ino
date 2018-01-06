@@ -34,7 +34,7 @@ const char* DEFAULT_WIFI_PASSWORD = "ingattuhan";
 char WIFI_SSID[32] = "";
 char WIFI_PASSWORD[32] = "";
 
-#define VERSION "0.1.1-alpha"
+#define VERSION "0.1.2-alpha"
 #define PIN_PWMA 5
 #define PIN_PWMB 4
 #define PIN_AIN2 15
@@ -88,6 +88,22 @@ void saveCredentials() {
   EEPROM.commit();
   EEPROM.end();
   ESP.reset();
+}
+
+// EEPROM Clear
+void check_clear_eeprom(){
+    //EEPROM Clear trigger
+    if(analogRead(A0) >= 1023){
+        EEPROM.begin(512);
+        for (int i = 0 ; i < 512 ; i++) {
+            light(0, 10);
+            EEPROM.write(i, 0);
+            light(1, 10);
+        }
+        EEPROM.commit();
+        EEPROM.end();
+        ESP.reset();
+    }
 }
 
 
@@ -322,6 +338,8 @@ void setup() {
   pinMode(PIN_PWMB, OUTPUT);
   pinMode(PIN_BIN1, OUTPUT);
   pinMode(PIN_BIN2, OUTPUT);
+  //EEPROM Clear trigger
+  pinMode(A0, INPUT);
     
   WiFi.mode(WIFI_STA);
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
@@ -329,6 +347,7 @@ void setup() {
   //Serial.println("Trying to connect.");
   while (WiFi.status() != WL_CONNECTED) {
     light(1, 100);
+    check_clear_eeprom();
     delay(100);
   }
   //Serial.println("Connected!");
@@ -341,6 +360,7 @@ void loop() {
     ArduinoOTA.handle();
     /*webSocket.loop();*/
     /* SCHEDULER */
+    // Ultrasonic Stream
     unsigned long NOW = millis();
     if((NOW - _FLAG_SCAN_LAST) > _FLAG_SCAN_PERIOD){
         stream_ultrasonic();
